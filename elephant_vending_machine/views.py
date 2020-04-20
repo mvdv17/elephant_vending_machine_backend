@@ -59,7 +59,8 @@ def run_experiment(filename):
     :status 200: experiment started
     :status 400: malformed request
     """
-    experiment_directory = os.path.dirname(os.path.abspath(__file__)) + EXPERIMENT_UPLOAD_FOLDER
+    path_to_current_file = os.path.dirname(os.path.abspath(__file__))
+    experiment_directory = os.path.join(path_to_current_file, 'static', 'experiment')
     response_message = ""
     response_code = 400
     response_body = {}
@@ -101,7 +102,7 @@ def add_remote_image(local_image_path, filename):
     for host in APP.config['REMOTE_HOSTS']:
         user = APP.config['REMOTE_HOST_USERNAME']
         directory = APP.config['REMOTE_IMAGE_DIRECTORY']
-        ssh_command = f'''ssh -oStrictHostKeyChecking=accept-new -i ~/.ssh/id_rsa \
+        ssh_command = f'''ssh -oStrictHostKeyChecking=accept-new -i /root/.ssh/id_rsa \
             {user}@{host} mkdir -p {directory}'''
         subprocess.run(ssh_command, check=True, shell=True)
         scp_command = f"scp {local_image_path}/{filename} {user}@{host}:{directory}/{filename}"

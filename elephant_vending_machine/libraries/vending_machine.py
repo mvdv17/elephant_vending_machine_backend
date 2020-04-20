@@ -5,13 +5,14 @@ and detecting motion sensor input on the machine.
 """
 
 import time
+import subprocess
 import spur
 import maestro
 
 LEFT_SCREEN = 1
 MIDDLE_SCREEN = 2
 RIGHT_SCREEN = 3
-SENSOR_THRESHOLD = 50
+SENSOR_THRESHOLD = 20
 LEFT_SENSOR_PIN = 0
 MIDDLE_SENSOR_PIN = 1
 RIGHT_SENSOR_PIN = 2
@@ -134,7 +135,6 @@ class SensorGrouping:
 
     def __init__(self, address, screen_identifier, sensor_pin, config):
         self.group_id = screen_identifier
-        self.correct_stimulus = False
         self.address = address
         self.sensor_pin = sensor_pin
         self.config = config
@@ -153,30 +153,20 @@ class SensorGrouping:
             display_time (int): The number of milliseconds that LEDs should display the color
                 before returning to an "off" state.
         """
-        shell = spur.SshShell(
-            hostname=self.address,
-            username='pi',
-            missing_host_key=spur.ssh.MissingHostKey.accept,
-            load_system_host_keys=False
-        )
-        with shell:
-            shell.spawn(
-                ['sudo', 'PYTHONPATH=\".:build/lib.linux-armv71-2.7\"',
-                 'python',
-                 # pylint: disable=line-too-long
-                 # I don't see a good way to break this line up.
-                 f'''{self.config['REMOTE_LED_SCRIPT_DIRECTORY']}/led.py {red} {green} {blue} {display_time}'''])
+        ssh_command = f'''ssh -oStrictHostKeyChecking=no -i /root/.ssh/id_rsa pi@{self.address} \
+            sudo PYTHONPATH=\".:build/lib.linux-armv71-2.7\" python \
+            {self.config['REMOTE_LED_SCRIPT_DIRECTORY']}/led.py \
+            {red} {green} {blue} {display_time}'''
+        subprocess.run(ssh_command, check=True, shell=True)
 
-    def display_on_screen(self, stimuli_name, correct_answer):
+    def display_on_screen(self, stimuli_name):
         """Displays the specified stimuli on the screen.
         Should only be called if the SensorGrouping config is not None
 
         Parameters:
             stimuli_name (str): The name of the file corresponding to the desired
                                 stimuli to be displayed.
-            correct_answer (boolean): Denotes whether this is the desired selection.
         """
-        self.correct_stimulus = correct_answer
         shell = spur.SshShell(
             hostname=self.address,
             username='pi',
